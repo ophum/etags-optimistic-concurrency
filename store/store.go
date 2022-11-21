@@ -10,19 +10,21 @@ import (
 
 type Store struct {
 	pets map[string]*entities.Pet
-	mu   sync.Mutex
+	mu   sync.RWMutex
 }
 
 func New() *Store {
 	return &Store{
 		pets: map[string]*entities.Pet{},
-		mu:   sync.Mutex{},
+		mu:   sync.RWMutex{},
 	}
 }
 
 var ErrNotFound = errors.New("not found")
 
 func (s *Store) GetAll() ([]*entities.Pet, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	r := make([]*entities.Pet, 0, len(s.pets))
 	for _, v := range s.pets {
 		r = append(r, v.DeepCopy())
@@ -36,8 +38,8 @@ func (s *Store) GetAll() ([]*entities.Pet, error) {
 }
 
 func (s *Store) Get(id string) (*entities.Pet, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if _, exists := s.pets[id]; !exists {
 		return nil, ErrNotFound
 	}
